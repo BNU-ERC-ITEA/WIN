@@ -25,7 +25,7 @@ def main():
     if opt.method == 'WIN':
         model = WIN(
             in_channels=opt.in_channels * (opt.num_secrets + 1) if args.task.lower() == 'hiding' else opt.in_channels,
-            out_channels=opt.out_channels,
+            out_channels=opt.out_channels * 4 if (args.task.lower() == 'rescaling' and args.scale == 4) else opt.out_channels,
             n_channels=opt.n_channels,
             splitting_ratio=opt.split_ratio,
             n_modules=opt.n_modules,
@@ -34,7 +34,7 @@ def main():
     elif opt.method == 'WIN_Naive':
         model = WIN_Naive(
             in_channels=opt.in_channels * (opt.num_secrets + 1) if args.task.lower() == 'hiding' else opt.in_channels,
-            out_channels=opt.out_channels,
+            out_channels=opt.out_channels * 4 if (args.task.lower() == 'rescaling' and args.scale == 4) else opt.out_channels,
             n_blocks=opt.n_blocks,
             scale=opt.scale)
     else:
@@ -69,10 +69,10 @@ def main():
             if not os.path.exists(result_path):
                 os.makedirs(result_path)
             if args.task == 'rescaling':
-                PSNR_Degrade, PSNR_Recovery, Time = test_rescaling(opt.dir_data + 'Test/{}/HR'.format(data_test),
+                PSNR_Degrade, PSNR_Recovery, Time = test(opt.dir_data + 'Test/{}/HR'.format(data_test),
                                                                    result_path, model, opt)
             elif args.task == 'decolorization':
-                PSNR_Degrade, PSNR_Recovery, Time = test_decolorization(opt.dir_data + 'Test/{}/HR'.format(data_test),
+                PSNR_Degrade, PSNR_Recovery, Time = test(opt.dir_data + 'Test/{}/HR'.format(data_test),
                                                                         result_path, model, opt)
             elif args.task == 'hiding':
                 PSNR_Degrade, PSNR_Recovery, Time = test_hiding(opt.dir_data + 'Test/{}/HR'.format(data_test),

@@ -89,14 +89,6 @@ def train(training_dataloader, optimizer, model, epoch, writer, args):
 
                 HQ_est = model(LQ_est, rev=True)
                 loss_reverse = criterion_reverse(HQ_est, HQ_img)
-                if args.task == 'hiding':
-                    loss_reverse += criterion_reverse(HQ_est[:, args.out_channels:, :, :],
-                                                      HQ_img[:, args.out_channels:, :, :])
-                elif args.task == 'composition11':
-                    loss_reverse += criterion_reverse(HQ_est[:, args.out_channels:, :, :],
-                                                      HQ_img[:, args.out_channels:, :, :])
-                elif args.task == 'rescaling':
-                    loss_reverse += criterion_reverse(HQ_est, HQ_img)
                 loss += args.lambda_reverse * loss_reverse
 
             loss.sum().backward()
@@ -150,7 +142,7 @@ def test_hiding(source_path, result_path, model, args, f_csv=None):
     filename = os.listdir(source_path)
     filename.sort()
     val_length = len(filename) // (args.num_secrets + 1)
-    val_length = 2
+    # val_length = 2
     torch.cuda.empty_cache()
 
     if 'COCO' in source_path:

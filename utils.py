@@ -7,6 +7,8 @@ from datetime import datetime
 from PIL import Image
 import torch.optim as optim
 from collections import OrderedDict
+import yaml
+from argparse import Namespace
 
 def save_img(x, colors=3, value_range=255):
     if colors == 3:
@@ -234,18 +236,125 @@ def learning_rate_scheduler(optimizer, lr_type, start_epoch, lr_gamma_1, lr_gamm
     return scheduler
 
 
-def print_args(args):
-    if args.train.lower() == 'train':
-        num_sec = ''
+def load_config(config_path='config.yaml'):
+    """Load hyperparameters from YAML file"""
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+    return config
 
-        if args.scale > 1:
-            name = '{}_x{}_{}'.format(args.task, args.scale, args.method)
+
+def config_to_args(config):
+    """Convert YAML config dict to argparse-like object (namespace)"""
+
+    # Flatten nested dict into a single namespace
+    args = Namespace()
+
+    # Data
+    args.data_train = config['data']['data_train']
+    args.data_test = config['data']['data_test']
+    args.n_train = config['data']['n_train']
+    args.n_colors = config['data']['n_colors']
+    args.value_range = config['data']['value_range']
+    args.store_in_ram = config['data']['store_in_ram']
+    args.shuffle = config['data']['shuffle']
+    args.save_img = config['data']['save_img']
+
+    # Model
+    args.in_channels = config['model']['in_channels']
+    args.out_channels = config['model']['out_channels']
+    args.n_channels = config['model']['n_channels']
+    args.n_modules = config['model']['n_modules']
+    args.n_blocks = config['model']['n_blocks']
+    args.split_ratio = config['model']['split_ratio']
+    args.quantization = config['model']['quantization']
+
+    # Loss
+    args.lambda_forward = config['loss']['lambda_forward']
+    args.lambda_reverse = config['loss']['lambda_reverse']
+    args.lambda_det = config['loss']['lambda_det']
+    args.lambda_shift = config['loss']['lambda_shift']
+
+    # Training
+    args.iter_epoch = config['training']['iter_epoch']
+    args.start_epoch = config['training']['start_epoch']
+    args.n_epochs = config['training']['n_epochs']
+    args.patch_size = config['training']['patch_size']
+    args.batch_size = config['training']['batch_size']
+    args.model_path = config['training']['model_path']
+    args.resume = config['training']['resume']
+
+    # Optimization
+    optimizer_name = config['optimization']['optimizer']
+    args.optimizer = getattr(torch.optim, optimizer_name)  # Map string to torch.optim class
+    args.lr = config['optimization']['lr']
+    args.lr_type = config['optimization']['lr_type']
+    args.lr_gamma_1 = config['optimization']['lr_gamma_1']
+    args.lr_gamma_2 = config['optimization']['lr_gamma_2']
+
+    return args
+
+def merge_args_with_yaml(args, yaml_path, verbose=True):
+    """
+    Merge args (Namespace) with parameters from a YAML file.
+    - Existing args are kept
+    - YAML values override existing keys, or are added if missing
+    """
+    # 读取yaml配置
+    with open(yaml_path, 'r', encoding='utf-8') as f:
+        cfg = yaml.safe_load(f)
+
+    # 打平嵌套结构（hardware.data.model... → hardware_cuda 等）
+    def flatten_dict(d, parent_key='', sep='_'):
+        items = []
+        for k, v in d.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.extend(flatten_dict(v, new_key, sep=sep).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
+    cfg_flat = flatten_dict(cfg)
+
+    # 把 args（Namespace）转为 dict
+    args_dict = vars(args)
+
+    if verbose:
+        print("🔹 Merging the following keys from config file:")
+
+    # 更新 args
+    for k, v in cfg_flat.items():
+        if k in args_dict:
+            if verbose:
+                print(f"  ⚙️ Overriding {k}: {args_dict[k]} → {v}")
         else:
-            name = '{}_{}'.format(args.task, args.method) + num_sec
+            if verbose:
+                print(f"  ➕ Adding new key {k}: {v}")
+        args_dict[k] = v
 
-        args.model_path = 'models/' + name + datetime.now().strftime("_%Y%m%d_%H%M%S")
+    # 重新转回 Namespace
+    new_args = Namespace(**args_dict)
+    return new_args
 
-        args.resume = 'models/hiding_WIN/Checkpoints/checkpoint_epoch_300.pth'
+def print_args(args):
+    num_sec = ''
+    if args.task == 'hiding':
+        num_sec = '_x{}'.format(args.num_secrets)
+
+    if args.scale > 1:
+        name = '{}_x{}_{}'.format(args.task, args.scale, args.method)
+    else:
+        name = '{}_{}'.format(args.task, args.method) + num_sec
+
+    args.model_path = 'models/' + name
+    yaml_path = 'config/' + name + '.yaml'
+    args = merge_args_with_yaml(args, yaml_path=yaml_path)
+    if isinstance(args.optimizer, str):
+        args.optimizer = getattr(torch.optim, args.optimizer)
+
+    if args.train.lower() == 'train':
+        args.model_path += datetime.now().strftime("_%Y%m%d_%H%M%S")
+        args.resume = ''
 
         if not os.path.exists(args.model_path + '/Checkpoints/'):
             os.makedirs(args.model_path + '/Checkpoints')
@@ -266,11 +375,6 @@ def print_args(args):
             shutil.copytree('data', args.model_path + '/Code/data')
 
     elif args.train.lower() == 'test':
-        if args.scale > 1:
-            args.model_path = 'models/{}_x{}_{}'.format(args.task, args.scale, args.method)
-            args.resume = args.model_path + '/Checkpoints/checkpoint_epoch_300.pth'
-        else:
-            args.model_path = 'models/{}_{}'.format(args.task, args.method)
-            args.resume = args.model_path + '/Checkpoints/checkpoint_epoch_300.pth'
+        args.resume = 'pretrained_checkpoints/' + name + '.pth'
 
     return args
