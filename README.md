@@ -85,7 +85,7 @@ python main.py --task rescaling --scale 4 --train complexity
 This will output: Parameters (K) and FLOPs (G) for both forward and reverse passes
 
 ## 📦 Pre-trained Models
-Download pre-trained checkpoints from Google Drive. Place them in **pretrained_checkpoints**.
+Download pre-trained checkpoints from Google Drive. Place them in [**pretrained_checkpoints**](https://drive.google.com/drive/folders/1i71o6Eo6ugPAl7rvpn8bFfKOR5_5FQs5?usp=drive_link).
 
 ## 📈 Results
 Quantitative comparisons of different single image hiding methods on multiple benchmark datasets.
