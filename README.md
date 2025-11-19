@@ -89,11 +89,11 @@ Download pre-trained checkpoints from Google Drive. Place them in [**pretrained_
 
 ## 📈 Results
 Quantitative comparisons of different single image hiding methods on multiple benchmark datasets.
-![](imgs/single hiding.png)
+![](imgs/s-hiding.png)
 Qualitative results of reversible single image hiding: hiding secret in smooth cover image. For better view, we visualize the residual error map in the forward concealing branch (the top two rows) and the reverse revealing branch (the bottom two rows).
 ![](imgs/s-hiding-visual.png)
 Quantitative comparisons of multiple image hiding methods with different number of secret images on DIV2K validation dataset.
-![](imgs/multiple hiding.png)
+![](imgs/m-hiding.png)
 Qualitative results of reversible multiple image hiding with four secret images. The residual error maps are visualized for improved clarity.
 ![](imgs/m-hiding-visual.png)
 Quantitative comparisons of different image rescaling methods on several benchmark datasets. The PSNR and SSIM metrics for the accuracy of image upscaling on downscaled image are provided.
